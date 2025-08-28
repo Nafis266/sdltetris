@@ -4,47 +4,56 @@
 #include<stdio.h>
 #include<unistd.h>
 #include<stdbool.h>
+#include<stdlib.h>
 
 #define SHAPECOUNT 100
 #define MAXX 600
 #define MAXY 600
 #define MAXFRAMES 2000
-#define DIFF 50
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
-static int xval[SHAPECOUNT];
-static int yval[SHAPECOUNT];
 static int frames = 0;
 static bool movdown[SHAPECOUNT];
-static int cshape = 0;
+static int current = 0;
 
-void initializearr(){
+struct cshape{
+	int xval;
+	int yval;
+	int diff;
+};
+
+void initializearr(struct cshape* allshapes){
 	for(int i=0;i<SHAPECOUNT;i++){
-		xval[i] = MAXX/2;
-		yval[i] = -DIFF;
+		(allshapes+i)->diff = 50;
+		(allshapes+i)->xval = MAXX/2;
+		(allshapes+i)->yval = -((allshapes+i)->diff);
 		movdown[i] = true;
 	}
 }
 
 
-int checkcollision(int thecase){
-	if(cshape==0){ return 0; }
-	for(int i=0;i<cshape;i++){
+int checkcollision(int thecase, struct cshape* allshapes){
+	if(current==0){ return 0; }
+	for(int i=0;i<current;i++){
 		switch(thecase){
 			case 0:
-				if((((xval[i] < xval[cshape] && xval[cshape] < xval[i]+2*DIFF) ||
-				(xval[cshape] < xval[i] && xval[i] < xval[cshape]+2*DIFF)) ||
-				(xval[cshape] == xval[i])) &&
-				(yval[i] == yval[cshape]+DIFF))
+				if(((((allshapes+i)->xval < (allshapes+current)->xval && (allshapes+current)->xval < (allshapes+i)->xval+2*(allshapes+current)->diff) ||
+				((allshapes+current)->xval < (allshapes+i)->xval && (allshapes+i)->xval < (allshapes+current)->xval+2*(allshapes+current)->diff)) ||
+				((allshapes+current)->xval == (allshapes+i)->xval)) &&
+				((allshapes+i)->yval == (allshapes+current)->yval+(allshapes+current)->diff))
 				{ return 1; }
 				break;
 			case 1:
-				if((xval[i] < xval[cshape]+DIFF && xval[cshape]+DIFF < xval[i]+2*DIFF) && yval[i] == yval[cshape])
+				if(((allshapes+i)->xval < (allshapes+current)->xval+(allshapes+current)->diff &&
+				(allshapes+current)->xval+(allshapes+current)->diff < (allshapes+i)->xval+2*(allshapes+current)->diff) && 
+				(allshapes+i)->yval == (allshapes+current)->yval)
 				{ return 1; }
 				break;
 			case 2:
-				if((xval[i] < xval[cshape]-DIFF && xval[cshape]-DIFF < xval[i]+2*DIFF) && yval[i] == yval[cshape])
+				if(((allshapes+i)->xval < (allshapes+current)->xval-(allshapes+current)->diff && 
+				(allshapes+current)->xval-(allshapes+current)->diff < (allshapes+i)->xval+2*(allshapes+current)->diff) && 
+				(allshapes+i)->yval == (allshapes+current)->yval)
 				{ return 1; }
 				break;
 		}
@@ -55,28 +64,33 @@ int checkcollision(int thecase){
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char* argb[]){
 	window = SDL_CreateWindow("tetris", 700,700,0);
 	renderer = SDL_CreateRenderer(window,NULL);
-	initializearr();
+	struct cshape *allshapes = malloc(sizeof(struct cshape)*SHAPECOUNT);
+	initializearr(allshapes);
+	*appstate = allshapes;
 	return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
+	
+	struct cshape* allshapes = (struct cshape*)appstate;
+
 	if(event->type == SDL_EVENT_QUIT){
 		return SDL_APP_SUCCESS;
 	}if(event->type == SDL_EVENT_KEY_DOWN){
 		if(event->key.key == SDLK_RIGHT){
-			if(xval[cshape]<MAXX && movdown[cshape] && checkcollision(1)==0){
-				xval[cshape]+=DIFF;
+			if((allshapes+current)->xval<MAXX && movdown[current] && checkcollision(1,allshapes)==0){
+				(allshapes+current)->xval+=(allshapes+current)->diff;
 			}
 		}else if(event->key.key == SDLK_LEFT){
-			if(xval[cshape]>0 && movdown[cshape] && checkcollision(2)==0){
-				xval[cshape]-=DIFF;
+			if((allshapes+current)->xval>0 && movdown[current] && checkcollision(2,allshapes)==0){
+				(allshapes+current)->xval-=(allshapes+current)->diff;
 			}
 		}else if(event->key.key == SDLK_DOWN){
-			while(yval[cshape]<MAXY && checkcollision(0)==0){
-				yval[cshape]+=DIFF;
-				if(checkcollision(0)==1 || yval[cshape]>MAXY){
-					movdown[cshape] = false;
-					cshape++;
+			while((allshapes+current)->yval<MAXY && checkcollision(0,allshapes)==0){
+				(allshapes+current)->yval+=(allshapes+current)->diff;
+				if(checkcollision(0,allshapes)==1 || (allshapes+current)->yval>MAXY){
+					movdown[current] = false;
+					current++;
 					break;
 				}
 			}
@@ -86,29 +100,32 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 	return SDL_APP_CONTINUE;
 }
 
+
 SDL_AppResult SDL_AppIterate(void *appstate){
 	SDL_RenderClear(renderer);
 
+	struct cshape* allshapes = (struct cshape*)appstate;
+
 	int index[6] = {0,1,2,0,2,3};
-	for(int shape = 0; shape < SHAPECOUNT; shape++){
+	for(int i = 0; i < SHAPECOUNT; i++){
 		SDL_Vertex rectvert[4] = {
-		{ {xval[shape],yval[shape]}, {255,0,0,0}, {0, 0} },
-		{ {xval[shape]+2*DIFF, yval[shape]}, {255,0,0,0}, {1, 0} },
-		{ {xval[shape]+2*DIFF, yval[shape]+DIFF}, {255,0,0,0}, {1, 1} },
-		{ {xval[shape], yval[shape]+DIFF}, {255,0,0,0}, {0,1}},
+		{ {(allshapes+i)->xval,(allshapes+i)->yval}, {255,0,0,0}, {0, 0} },
+		{ {(allshapes+i)->xval+2*(allshapes+current)->diff, (allshapes+i)->yval}, {255,0,0,0}, {1, 0} },
+		{ {(allshapes+i)->xval+2*(allshapes+current)->diff, (allshapes+i)->yval+(allshapes+current)->diff}, {255,0,0,0}, {1, 1} },
+		{ {(allshapes+i)->xval, (allshapes+i)->yval+(allshapes+current)->diff}, {255,0,0,0}, {0,1}},
 		};
 		SDL_RenderGeometry(renderer,NULL,rectvert,4,index,6);
 	}
 	SDL_RenderPresent(renderer);
-	if(movdown[cshape] && frames++>MAXFRAMES){
-		yval[cshape]+=DIFF;
+	if(movdown[current] && frames++>MAXFRAMES){
+		(allshapes+current)->yval+=(allshapes+current)->diff;
 		frames=0;
-		if(yval[cshape]>MAXY || checkcollision(0)==1){
-			movdown[cshape]=false;
-			cshape++;
+		if((allshapes+current)->yval>MAXY || checkcollision(0,allshapes)==1){
+			movdown[current]=false;
+			current++;
 		}
 	}
-	if((cshape == SHAPECOUNT && !movdown[cshape]) || yval[cshape]<-DIFF){
+	if((current == SHAPECOUNT && !movdown[current]) || (allshapes+current)->yval<-(allshapes+current)->diff){
 		printf("OVER\n");
 		sleep(2);
 		return SDL_APP_SUCCESS;
