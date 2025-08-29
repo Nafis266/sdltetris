@@ -45,8 +45,8 @@ int checkcollision(int thecase, struct cshape* allshapes){
 				{ return 1; }
 				break;
 			case 1:
-				if(((allshapes+i)->xval < (allshapes+current)->xval+(allshapes+current)->diff &&
-				(allshapes+current)->xval+(allshapes+current)->diff < (allshapes+i)->xval+2*(allshapes+current)->diff) && 
+				if(((allshapes+i)->xval < (allshapes+current)->xval+(3*(allshapes+current)->diff)) &&
+				((allshapes+current)->xval+(3*(allshapes+current)->diff) < (allshapes+i)->xval+(2*(allshapes+i)->diff)) &&	
 				(allshapes+i)->yval == (allshapes+current)->yval)
 				{ return 1; }
 				break;
