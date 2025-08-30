@@ -14,11 +14,10 @@
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
-static int frames = 0;
+static unsigned int prevt = 0;
 static int current = 0;
 
 static int squarep[] = {0,1,2,0,3,2};
-static int linep[] = {0,6,5,0,4,5};
 
 struct cshape{
 	int xval;
@@ -29,12 +28,8 @@ struct cshape{
 	int* indices;
 };
 
-void setpoints(int** points, int n){
-	if(n%2==0){
-		*points = squarep;
-		return;
-	}
-	*points = linep;
+void setpoints(int** points){
+	*points = squarep;
 }
 
 void initializearr(struct cshape* allshapes){
@@ -44,7 +39,7 @@ void initializearr(struct cshape* allshapes){
 		(allshapes+i)->xval = MAXX/2;
 		(allshapes+i)->yval = -((allshapes+i)->ydiff); 
 		(allshapes+i)->movdown = true;
-		setpoints(&(allshapes+i)->indices, i);
+		setpoints(&(allshapes+i)->indices);
 	}
 }
 
@@ -120,26 +115,24 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 	struct cshape* allshapes = (struct cshape*)appstate;
 
 	for(int i = 0; i < SHAPECOUNT; i++){
-		SDL_Vertex rectvert[7] = {
+		SDL_Vertex rectvert[4] = {
 		{{(allshapes+i)->xval,(allshapes+i)->yval}, {255,0,0,0}, {0, 0} },
 		{{(allshapes+i)->xval + (allshapes+i)->xdiff, (allshapes+i)->yval}, {255,0,0,0}, {1, 0} },
 		{{(allshapes+i)->xval + (allshapes+i)->xdiff, (allshapes+i)->yval + (allshapes+i)->ydiff}, {255,0,0,0}, {1, 1} },
 		{{(allshapes+i)->xval, (allshapes+i)-> yval + (allshapes+i)->ydiff}, {255,0,0,0}, {0, 1}},
-		{{(allshapes+i)->xval, (allshapes+i)->yval + (allshapes+i)->ydiff}, {255,0,0,0}, {1, 1}},
-		{{(allshapes+i)->xval + (allshapes+i)->xdiff, (allshapes+i)->yval + (allshapes+i)->ydiff}, {255,0,0,0}, {1, 0}},
-		{{(allshapes+i)->xval + (allshapes+i)->xdiff, (allshapes+i)->yval}, {255,0,0,0}, {0, 1}}
 		};
-		SDL_RenderGeometry(renderer,NULL,rectvert,7,(allshapes+i)->indices,6);
+		SDL_RenderGeometry(renderer,NULL,rectvert,4,(allshapes+i)->indices,6);
 	}
 
 	SDL_RenderPresent(renderer);
-	if((allshapes+current)->movdown && frames++>MAXFRAMES){
+	unsigned int currt = SDL_GetTicks();
+	if((allshapes+current)->movdown && (currt > prevt + 500)){
 		(allshapes+current)->yval += GENDIFF;
-		frames=0;
 		if((allshapes+current)->yval + (allshapes+current)->ydiff >= MAXY || checkcollision(0,allshapes)==1){
 			(allshapes+current)->movdown=false;
 			current++;
 		}
+		prevt = currt;
 	}
 	if((current == SHAPECOUNT && !(allshapes+current)->movdown)){
 		printf("OVER\n");
