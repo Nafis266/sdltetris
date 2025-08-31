@@ -5,11 +5,12 @@
 #include<unistd.h>
 #include<stdbool.h>
 #include<stdlib.h>
+#include<time.h>
 
 #define SHAPECOUNT 100
 #define MAXX 600
 #define MAXY 700
-#define MAXFRAMES 2000
+#define MAXTICKS 500
 #define GENDIFF 50
 
 static SDL_Window *window = NULL;
@@ -28,18 +29,33 @@ struct cshape{
 	int* indices;
 };
 
-void setpoints(int** points){
-	*points = squarep;
+void setpoints(struct cshape* allshapes, int i){
+	int random = rand()%3;
+	switch(random){
+		case 0:
+			(allshapes+i)->xdiff = 3*GENDIFF;
+			(allshapes+i)->ydiff = GENDIFF;
+			(allshapes+i)->indices = squarep;
+			break;
+		case 1:
+			(allshapes+i)->xdiff = GENDIFF;
+			(allshapes+i)->ydiff = 3*GENDIFF;
+			(allshapes+i)->indices = squarep;
+			break;
+		case 2:
+			(allshapes+i)->xdiff = 2*GENDIFF;
+			(allshapes+i)->ydiff = 2*GENDIFF;
+			(allshapes+i)->indices = squarep;
+			break;
+	}
 }
 
 void initializearr(struct cshape* allshapes){
-	for(int i=0;i<SHAPECOUNT;i++){
-		(allshapes+i)->xdiff = (i%2==0 ? GENDIFF*2 : GENDIFF);
-		(allshapes+i)->ydiff = (i%2==0 ? GENDIFF : GENDIFF*3); 
+	for(int i=0;i<SHAPECOUNT;i++){	
+		setpoints(allshapes,i);
 		(allshapes+i)->xval = MAXX/2;
 		(allshapes+i)->yval = -((allshapes+i)->ydiff); 
 		(allshapes+i)->movdown = true;
-		setpoints(&(allshapes+i)->indices);
 	}
 }
 
@@ -75,6 +91,8 @@ int checkcollision(int thecase, struct cshape* allshapes){
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char* argb[]){
 	window = SDL_CreateWindow("tetris", 700,700,0);
 	renderer = SDL_CreateRenderer(window,NULL);
+	srand(time(NULL));
+
 	struct cshape *allshapes = malloc(sizeof(struct cshape)*SHAPECOUNT);
 	initializearr(allshapes);
 	*appstate = allshapes;
@@ -126,7 +144,7 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 
 	SDL_RenderPresent(renderer);
 	unsigned int currt = SDL_GetTicks();
-	if((allshapes+current)->movdown && (currt > prevt + 500)){
+	if((allshapes+current)->movdown && (currt > prevt + MAXTICKS)){
 		(allshapes+current)->yval += GENDIFF;
 		if((allshapes+current)->yval + (allshapes+current)->ydiff >= MAXY || checkcollision(0,allshapes)==1){
 			(allshapes+current)->movdown=false;
