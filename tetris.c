@@ -67,38 +67,51 @@ void initializearr(struct cshape* allshapes){
 
 
 int checkcollision(int thecase, struct cshape* allshapes){
-	if(current==0){ return 0; }
-	return 0;
-	/*
-	for(int i=0;i<current;i++){
-		switch(thecase){
-			case 0:
-				if(((((allshapes+i)->xval < (allshapes+current)->xval && (allshapes+current)->xval < (allshapes+i)->xval + (allshapes+i)->xdiff) ||
-				((allshapes+current)->xval < (allshapes+i)->xval && (allshapes+i)->xval < (allshapes+current)->xval + (allshapes+current)->xdiff)) ||
-				((allshapes+current)->xval == (allshapes+i)->xval)) &&
-				((allshapes+i)->yval == (allshapes+current)->yval+(allshapes+current)->ydiff))
-				{ return 1; }
-				break;
-			case 1:
-				if(((allshapes+i)->xval < (allshapes+current)->xval + (allshapes+current)->xdiff) &&
-				((allshapes+current)->xval + (allshapes+current)->xdiff < (allshapes+i)->xval + (allshapes+i)->xdiff) &&	
-				(allshapes+i)->yval == (allshapes+current)->yval)
-				{ return 1; }
-				break;
-			case 2:
-				if(((allshapes+i)->xval < (allshapes+current)->xval - (allshapes+current)->xdiff && 
-				(allshapes+current)->xval - (allshapes+current)->xdiff < (allshapes+i)->xval + (allshapes+i)->xdiff) && 
-				(allshapes+i)->yval == (allshapes+current)->yval)
-				{ return 1; }
-				break;
+	if(thecase == -1){
+		if((allshapes+current)->yval + (((allshapes+current)->indices[((allshapes+current)->indcount)-1])/MAXCOLS)*(GENDIFF) + GENDIFF >= MAXY){
+			return 1;
+		}
+		return 0;
+	}
+	if(current == 0){ return 0; }
+
+	for(int i=0; i<(allshapes+current)->indcount; i++){
+		for(int j=0; j<current; j++){
+			for(int k=0; k<(allshapes+j)->indcount; k++){
+				int yidiff = (allshapes+current)->indices[i] / MAXCOLS;
+				int yjdiff = (allshapes+j)->indices[k] / MAXCOLS;
+				
+				int xidiff = (allshapes+current)->indices[i] % MAXCOLS;
+				int xjdiff = (allshapes+j)->indices[k] % MAXCOLS;
+				switch(thecase){
+					case 0:
+						if(((allshapes+current)->yval + yidiff*GENDIFF + GENDIFF == (allshapes+j)->yval + yjdiff*GENDIFF) &&
+						((allshapes+current)->xval + xidiff*GENDIFF == (allshapes+j)->xval + xjdiff*GENDIFF))
+						{
+							return 1;
+						}
+						break;
+					case 1:
+						if(((allshapes+current)->xval + xidiff*GENDIFF + GENDIFF == (allshapes+j)->xval + xjdiff*GENDIFF) &&
+						((allshapes+current)->yval + yidiff*GENDIFF == (allshapes+j)->yval + yjdiff*GENDIFF)){
+							return 1;
+						}
+						break;
+					case 2:
+						if((allshapes+current)->xval + xidiff*GENDIFF - GENDIFF == ((allshapes+j)->xval + xjdiff*GENDIFF) &&
+						((allshapes+current)->yval + yidiff*GENDIFF == (allshapes+j)->yval + yjdiff*GENDIFF)){
+							return 1;
+						}
+						break;
+				}
+			}
 		}
 	}
-	*/
 	return 0;
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char* argb[]){
-	window = SDL_CreateWindow("tetris", 700,700,0);
+	window = SDL_CreateWindow("tetris", 700, 700, 0);
 	renderer = SDL_CreateRenderer(window,NULL);
 	srand(time(NULL));
 
@@ -115,20 +128,18 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 	if(event->type == SDL_EVENT_QUIT){
 		return SDL_APP_SUCCESS;
 	}
-	/*
+	
 	if(event->type == SDL_EVENT_KEY_DOWN){
 		if(event->key.key == SDLK_RIGHT){
-			if((allshapes+current)->xval<MAXX && (allshapes+current)->movdown && checkcollision(1,allshapes)==0){
+			if((allshapes+current)->xval + GENDIFF < MAXX && (allshapes+current)->movdown && checkcollision(1,allshapes)==0){
 				(allshapes+current)->xval += GENDIFF;
 			}
 		}else if(event->key.key == SDLK_LEFT){
-			if((allshapes+current)->xval>0 && (allshapes+current)->movdown && checkcollision(2,allshapes)==0){
+			if((allshapes+current)->xval > 0 && (allshapes+current)->movdown && checkcollision(2,allshapes)==0){
 				(allshapes+current)->xval -= GENDIFF;
 			}
 		}else if(event->key.key == SDLK_DOWN){
-			int totaly = ((allshapes+current)->yval + ((allshapes+current)->moreshapes == 0 ? 0 : GENDIFF));
-			while(totaly + (allshapes+current)->ydiff < MAXY && checkcollision(0,allshapes)==0){
-				totaly += GENDIFF;
+			while(checkcollision(-1,allshapes)==0 && checkcollision(0,allshapes)==0){
 				(allshapes+current)->yval += GENDIFF;
 			}
 			(allshapes+current)->movdown = false;
@@ -136,7 +147,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 			
 		}
 	}
-	*/
 	return SDL_APP_CONTINUE;
 }
 
@@ -147,21 +157,16 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 	struct cshape* allshapes = (struct cshape*)appstate;
 
 	for(int i = 0; i < SHAPECOUNT; i++){
-		int index = 0;
-		for(int j=0; j<MAXCOLS*MAXROWS && index < (allshapes+i)->indcount; j++){	
-			if((allshapes+i)->indices[index] != j){
-				continue;
-			}
-			int xdiff = j % MAXCOLS;
-			int ydiff = j / MAXCOLS;
+		for(int index=0; index < (allshapes+i)->indcount; index++){	
+			int xdiff = (allshapes+i)->indices[index] % MAXCOLS;
+			int ydiff = (allshapes+i)->indices[index] / MAXCOLS;
 			SDL_Vertex rectvert[4] = {
 			{{(allshapes+i)->xval + xdiff*GENDIFF, (allshapes+i)->yval + ydiff*GENDIFF}, {255,0,0,255}, {0, 0} },
 			{{(allshapes+i)->xval + (xdiff+1)*GENDIFF, (allshapes+i)->yval + ydiff*GENDIFF}, {255,0,0,255}, {1, 0} },
 			{{(allshapes+i)->xval + (xdiff+1)*GENDIFF, (allshapes+i)->yval + (ydiff+1)*GENDIFF}, {255,0,0,255}, {1, 1} },
-			{{(allshapes+i)->xval + xdiff*GENDIFF, (allshapes+i)-> yval + (ydiff+1)*GENDIFF}, {255,0,0,255}, {0, 1}},	
+			{{(allshapes+i)->xval + xdiff*GENDIFF, (allshapes+i)-> yval + (ydiff+1)*GENDIFF}, {255,0,0,255}, {0, 1} },	
 			};
 			SDL_RenderGeometry(renderer,NULL,rectvert,4,squarep,6);
-			index++;
 		}
 	}
 
@@ -169,7 +174,7 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 	unsigned int currt = SDL_GetTicks();
 	if((allshapes+current)->movdown && (currt > prevt + MAXTICKS)){
 		(allshapes+current)->yval += GENDIFF;
-		if((allshapes+current)->yval >= MAXY || checkcollision(0,allshapes)==1){
+		if(checkcollision(-1,allshapes)==1 || checkcollision(0,allshapes)==1){
 			(allshapes+current)->movdown=false;
 			current++;
 		}
