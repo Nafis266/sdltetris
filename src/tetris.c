@@ -7,35 +7,26 @@
 #include<stdlib.h>
 #include<time.h>
 
-#define SHAPECOUNT 100
-#define MAXX 600
-#define MAXY 700
-#define MAXTICKS 500
-#define GENDIFF 50
-#define MAXCOLS 4
-#define MAXROWS 4
+#include "config.h"
+#include "game.h"
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static unsigned int prevt = 0;
-static int current = 0;
+
+
+int current = 0;
 
 static int squarep[] = {0,1,2,0,3,2};
-static int Iindex[] = {0,1,2,3};
-static int Tindex[] = {0,1,2,5};
+static int Iindex[] = {0,4,8,12};
+static int Tindex[] = {1,4,5,6};
 static int Lindex[] = {0,1,2,6,10,14};
-static int Sindex[] = {1,5,6,10};
+static int Sindex[] = {0,4,5,9};
+static int Xindex[] = {1,4,5,6,9};
 
-struct cshape{
-	int xval;
-	int yval;
-	bool movdown;
-	int* indices;
-	int indcount;
-};
 
 void setshape(struct cshape* allshapes, int i){
-	int random = rand()%4;
+	int random = rand()%5;
 	switch(random){
 		case 0:
 			(allshapes+i)->indices = Sindex;
@@ -53,65 +44,25 @@ void setshape(struct cshape* allshapes, int i){
 			(allshapes+i)->indices = Iindex;
 			(allshapes+i)->indcount = sizeof(Iindex)/sizeof(Iindex[0]);
 			break;
+		case 4:
+			(allshapes+i)->indices = Xindex;
+			(allshapes+i)->indcount = sizeof(Xindex)/sizeof(Xindex[0]);
+			break;
 	}
 }
 
 void initializearr(struct cshape* allshapes){
 	for(int i=0;i<SHAPECOUNT;i++){	
-		(allshapes+i)->xval = MAXX/2;
-		(allshapes+i)->yval = -100; 
+		(allshapes+i)->xval = (MAXX/2)-2*GENDIFF;
+		(allshapes+i)->yval = -MAXROWS*GENDIFF; 
 		(allshapes+i)->movdown = true;
 		setshape(allshapes,i);
 	}
 }
 
 
-int checkcollision(int thecase, struct cshape* allshapes){
-	if(thecase == -1){
-		if((allshapes+current)->yval + (((allshapes+current)->indices[((allshapes+current)->indcount)-1])/MAXCOLS)*(GENDIFF) + GENDIFF >= MAXY){
-			return 1;
-		}
-		return 0;
-	}
-	if(current == 0){ return 0; }
-
-	for(int i=0; i<(allshapes+current)->indcount; i++){
-		for(int j=0; j<current; j++){
-			for(int k=0; k<(allshapes+j)->indcount; k++){
-				int yidiff = (allshapes+current)->indices[i] / MAXCOLS;
-				int yjdiff = (allshapes+j)->indices[k] / MAXCOLS;
-				
-				int xidiff = (allshapes+current)->indices[i] % MAXCOLS;
-				int xjdiff = (allshapes+j)->indices[k] % MAXCOLS;
-				switch(thecase){
-					case 0:
-						if(((allshapes+current)->yval + yidiff*GENDIFF + GENDIFF == (allshapes+j)->yval + yjdiff*GENDIFF) &&
-						((allshapes+current)->xval + xidiff*GENDIFF == (allshapes+j)->xval + xjdiff*GENDIFF))
-						{
-							return 1;
-						}
-						break;
-					case 1:
-						if(((allshapes+current)->xval + xidiff*GENDIFF + GENDIFF == (allshapes+j)->xval + xjdiff*GENDIFF) &&
-						((allshapes+current)->yval + yidiff*GENDIFF == (allshapes+j)->yval + yjdiff*GENDIFF)){
-							return 1;
-						}
-						break;
-					case 2:
-						if((allshapes+current)->xval + xidiff*GENDIFF - GENDIFF == ((allshapes+j)->xval + xjdiff*GENDIFF) &&
-						((allshapes+current)->yval + yidiff*GENDIFF == (allshapes+j)->yval + yjdiff*GENDIFF)){
-							return 1;
-						}
-						break;
-				}
-			}
-		}
-	}
-	return 0;
-}
-
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char* argb[]){
-	window = SDL_CreateWindow("tetris", 700, 700, 0);
+	window = SDL_CreateWindow("tetris", MAXX, MAXY, 0);
 	renderer = SDL_CreateRenderer(window,NULL);
 	srand(time(NULL));
 
@@ -131,11 +82,19 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 	
 	if(event->type == SDL_EVENT_KEY_DOWN){
 		if(event->key.key == SDLK_RIGHT){
-			if((allshapes+current)->xval + GENDIFF < MAXX && (allshapes+current)->movdown && checkcollision(1,allshapes)==0){
+			int rightmost = 0;
+			for(int i=0; i < (allshapes+current)->indcount; i++){
+				int xidiff = (allshapes+current)->indices[i] % MAXCOLS;
+				int rightval = (allshapes+current)->xval + (xidiff+1)*GENDIFF;
+				if(rightval  > rightmost){
+					rightmost = rightval;
+				}
+			}
+			if(rightmost + GENDIFF <= MAXX && (allshapes+current)->movdown && checkcollision(1,allshapes)==0){
 				(allshapes+current)->xval += GENDIFF;
 			}
 		}else if(event->key.key == SDLK_LEFT){
-			if((allshapes+current)->xval > 0 && (allshapes+current)->movdown && checkcollision(2,allshapes)==0){
+			if((allshapes+current)->xval - GENDIFF >= 0 && (allshapes+current)->movdown && checkcollision(2,allshapes)==0){
 				(allshapes+current)->xval -= GENDIFF;
 			}
 		}else if(event->key.key == SDLK_DOWN){
