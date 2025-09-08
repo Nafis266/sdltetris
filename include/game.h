@@ -2,6 +2,9 @@
 #define GAME_H
 
 #include<stdbool.h>
+#include<time.h>
+#include<stdlib.h>
+#include<stdio.h>
 
 extern int current;
 
@@ -15,6 +18,8 @@ struct cshape{
 
 
 int checkcollision(int thecase, struct cshape* allshapes);
-
+void setshape(struct cshape* allshapes, int i);
+void initializearr(struct cshape* allshapes);
+void checkrows(struct cshape* allshapes);
 
 #endif

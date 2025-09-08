@@ -9,6 +9,8 @@ include_directories(include)
 add_executable(main
 	src/tetris.c
 	src/collision.c
+	src/initialize.c
+	src/delrow.c
 )
 
 find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)

@@ -3,9 +3,6 @@
 #include<SDL3/SDL_main.h>
 #include<stdio.h>
 #include<unistd.h>
-#include<stdbool.h>
-#include<stdlib.h>
-#include<time.h>
 
 #include "config.h"
 #include "game.h"
@@ -14,52 +11,9 @@ static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static unsigned int prevt = 0;
 
-
 int current = 0;
 
 static int squarep[] = {0,1,2,0,3,2};
-static int Iindex[] = {0,4,8,12};
-static int Tindex[] = {1,4,5,6};
-static int Lindex[] = {0,1,2,6,10,14};
-static int Sindex[] = {0,4,5,9};
-static int Xindex[] = {1,4,5,6,9};
-
-
-void setshape(struct cshape* allshapes, int i){
-	int random = rand()%5;
-	switch(random){
-		case 0:
-			(allshapes+i)->indices = Sindex;
-			(allshapes+i)->indcount = sizeof(Sindex)/sizeof(Sindex[0]);
-			break;
-		case 1:
-			(allshapes+i)->indices = Tindex;
-			(allshapes+i)->indcount = sizeof(Tindex)/sizeof(Tindex[0]);
-			break;
-		case 2:
-			(allshapes+i)->indices = Lindex;
-			(allshapes+i)->indcount = sizeof(Lindex)/sizeof(Lindex[0]);
-			break;
-		case 3:
-			(allshapes+i)->indices = Iindex;
-			(allshapes+i)->indcount = sizeof(Iindex)/sizeof(Iindex[0]);
-			break;
-		case 4:
-			(allshapes+i)->indices = Xindex;
-			(allshapes+i)->indcount = sizeof(Xindex)/sizeof(Xindex[0]);
-			break;
-	}
-}
-
-void initializearr(struct cshape* allshapes){
-	for(int i=0;i<SHAPECOUNT;i++){	
-		(allshapes+i)->xval = (MAXX/2)-2*GENDIFF;
-		(allshapes+i)->yval = -MAXROWS*GENDIFF; 
-		(allshapes+i)->movdown = true;
-		setshape(allshapes,i);
-	}
-}
-
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char* argb[]){
 	window = SDL_CreateWindow("tetris", MAXX, MAXY, 0);
@@ -103,6 +57,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 			}
 			(allshapes+current)->movdown = false;
 			current++;
+			checkrows(allshapes);
 			
 		}
 	}
@@ -136,6 +91,8 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 		if(checkcollision(-1,allshapes)==1 || checkcollision(0,allshapes)==1){
 			(allshapes+current)->movdown=false;
 			current++;
+			checkrows(allshapes);
+			printf("%d\n",(allshapes+current)->indcount);
 		}
 		prevt = currt;
 	}
