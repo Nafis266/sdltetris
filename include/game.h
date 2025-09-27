@@ -5,6 +5,7 @@
 #include<time.h>
 #include<stdlib.h>
 #include<stdio.h>
+#include<unistd.h>
 
 extern int current;
 

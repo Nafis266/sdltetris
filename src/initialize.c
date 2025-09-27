@@ -15,7 +15,7 @@ void setarray(int *setarr, int* arr, int length){
 }
 
 void setshape(struct cshape* allshapes, int i){
-	int random = rand()%1;
+	int random = rand()%5;
 	int *randind;
 	int length;
 	switch(random){
